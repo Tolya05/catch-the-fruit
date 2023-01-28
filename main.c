@@ -14,7 +14,8 @@ void GameIsPlaying(
     int *PlaySFX,
     int *KeyboardInput,
     int *FPSDraw,
-    int *GameOver) {
+    int *GameOver,
+    int *PauseGame) {
         
     float Delta = GetFrameTime();
     int ScreenWidth = GetScreenWidth();
@@ -25,58 +26,60 @@ void GameIsPlaying(
     SetSoundVolume(Pickup, 0.5);
     SetSoundVolume(Hurt, 0.5);
 
-    if (IsKeyPressed(KEY_T)) {
-        if (*KeyboardInput == 1) *KeyboardInput = 0;
-        if (*KeyboardInput == 0) *KeyboardInput = 1;
-    }
+    if (*PauseGame == 0) {    
+        if (IsKeyPressed(KEY_T)) {
+            if (*KeyboardInput == 1) *KeyboardInput = 0;
+            if (*KeyboardInput == 0) *KeyboardInput = 1;
+        }
 
-    for (int i = 0; i < 15; i++) {
-        if (circles[i].y < ScreenHeigth && *GameOver == 0) {
-            circles[i].y += 250 * Delta;
+        for (int i = 0; i < 15; i++) {
+            if (circles[i].y < ScreenHeigth && *GameOver == 0) {
+                circles[i].y += 250 * Delta;
+            }
+            else {
+                float CircleX = GetRandomValue(0, ScreenWidth + 25);
+                circles[i].x = CircleX;
+                circles[i].y = GetRandomValue(-25, 0);
+            }
         }
-        else {
-            float CircleX = GetRandomValue(0, ScreenWidth + 25);
-            circles[i].x = CircleX;
-            circles[i].y = GetRandomValue(-25, 0);
-        }
-    }
 
-    for (int i = 0; i < 5; i++) {
-        if (BadCircles[i].y < ScreenHeigth && *GameOver == 0) {
-            BadCircles[i].y += 250 * Delta;
+        for (int i = 0; i < 5; i++) {
+            if (BadCircles[i].y < ScreenHeigth && *GameOver == 0) {
+                BadCircles[i].y += 250 * Delta;
+            }
+            else {
+                BadCircles[i].x = GetRandomValue(0, ScreenWidth);
+                BadCircles[i].y = GetRandomValue(-25, 0);
+            }
         }
-        else {
-            BadCircles[i].x = GetRandomValue(0, ScreenWidth);
-            BadCircles[i].y = GetRandomValue(-25, 0);
-        }
-    }
 
-    for (int i = 0; i < 15; i++) {
-        if (CheckCollisionCircles(circles[i], 25, (Vector2) {(float) *PlayerX, (float) PlayerY}, 25)) {
-            *Score += 1;
-            circles[i].x = GetRandomValue(0, ScreenWidth);
-            circles[i].y = GetRandomValue(-25, 0);
-            if (*PlaySFX == 1) PlaySound(Pickup);
+        for (int i = 0; i < 15; i++) {
+            if (CheckCollisionCircles(circles[i], 25, (Vector2) {(float) *PlayerX, (float) PlayerY}, 25)) {
+                *Score += 1;
+                circles[i].x = GetRandomValue(0, ScreenWidth);
+                circles[i].y = GetRandomValue(-25, 0);
+                if (*PlaySFX == 1) PlaySound(Pickup);
+            }
         }
-    }
-        
-    for (int i = 0; i < 5; i++) {
-        if (CheckCollisionCircles(BadCircles[i], 25, (Vector2) {(float) *PlayerX, (float) PlayerY}, 25)) {
-            *Lives -= 1;
-            BadCircles[i].x = GetRandomValue(0, ScreenWidth);
-            BadCircles[i].x = GetRandomValue(-25, 0);
-            if (*PlaySFX == 1) PlaySound(Hurt);
+            
+        for (int i = 0; i < 5; i++) {
+            if (CheckCollisionCircles(BadCircles[i], 25, (Vector2) {(float) *PlayerX, (float) PlayerY}, 25)) {
+                *Lives -= 1;
+                BadCircles[i].x = GetRandomValue(0, ScreenWidth);
+                BadCircles[i].x = GetRandomValue(-25, 0);
+                if (*PlaySFX == 1) PlaySound(Hurt);
+            }
         }
-    }
-    if (*KeyboardInput == 1) {
-        if (IsKeyDown(KEY_A) && *PlayerX - 25 > 0) *PlayerX -= 250 * Delta;
-        if (IsKeyDown(KEY_D) && *PlayerX + 25 < ScreenWidth) *PlayerX += 250 * Delta;
-    }
-    else if (*KeyboardInput == 0) {
-        Vector2 MousePosVec = GetMousePosition();
-        if (MousePosVec.x > *PlayerX) *PlayerX += 250 * Delta;
-        if (MousePosVec.x < *PlayerX) *PlayerX -= 250 *Delta;
-    }
+        if (*KeyboardInput == 1) {
+            if ((IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) && *PlayerX - 25 > 0) *PlayerX -= 250 * Delta;
+            if ((IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) && *PlayerX + 25 < ScreenWidth) *PlayerX += 250 * Delta;
+        }
+        else if (*KeyboardInput == 0) {
+            Vector2 MousePosVec = GetMousePosition();
+            if (MousePosVec.x > *PlayerX) *PlayerX += 250 * Delta;
+            if (MousePosVec.x < *PlayerX) *PlayerX -= 250 *Delta;
+        }
+        }
     
     *GameOver = 0;
 
@@ -102,6 +105,9 @@ void GameIsPlaying(
 
     if (*FPSDraw == 1){
         DrawFPS(ScreenWidth / 10, ScreenHeigth / 10 * 9);
+    }
+    if (*PauseGame == 1) {
+        DrawText("PAUSED", ScreenWidth / 2, ScreenHeigth / 2, 35, BLACK);
     }
 
     EndDrawing();
@@ -223,6 +229,9 @@ int main(void) {
             if (PauseGame == 0) {
                 PauseGame = 1;
             }
+            else {
+                PauseGame = 0;
+            }
         }
 
         if (IsKeyPressed(KEY_X)) {
@@ -235,8 +244,6 @@ int main(void) {
             if (IsKeyPressed(KEY_P)) GamePlaying = true;
             MainMenu();
         }
-
-        if (PauseGame == 0) PauseScreen();
 
         else if (GameOver == 1) {
             if (HighScore == 0 || Score > HighScore) HighScore = Score;
@@ -255,7 +262,8 @@ int main(void) {
                 &PlaySFX,
                 &KeyboardInput,
                 &FPSDraw,
-                &GameOver
+                &GameOver,
+                &PauseGame
             );
             }
         }
@@ -271,7 +279,8 @@ int main(void) {
                 &PlaySFX,
                 &KeyboardInput,
                 &FPSDraw,
-                &GameOver
+                &GameOver,
+                &PauseGame
             );
         }
         
